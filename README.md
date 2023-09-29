@@ -1,20 +1,7 @@
 chat-with-oiss
 ==============================
 
-A chat interface to ask questions about immigration that runs on chatgpt
-
-# ML Projects Readme Template
-
-A simple and well designed structure is essential for any Machine Learning project, so we have designed a project template that combines **simplicity, best practice for folder structure** and **good OOP design** which could be easily scaled into any machine learning project.
-The main idea is that there's much same stuff you do every time when you start your machine learning project, so wrapping all repetitive parts of documentation and delivery will help you to change just the core idea every time you start a new pytorch project. 
-
-**So, here’s a simple template that help you get into your main project faster and just focus on your core (Model Architecture, Training Flow, etc)**
-
-A few tips to keep in mind while using this template:
-- You can remove everything above table of contents and populate project title and description if not done already.
-- The current structure of readme is designed keeping in mind my past projects and my idea of ML projects. Hence, be flexible with content of readme. If a section doesn't make sense for your project, remove it. Likewise, if a section is missing from the template that you would think is necessary, add it.
-- Try to not remove the "In a Nutshell", "Directory structure" "Contributing", "Acknowledgments" as these apply to all projects.
-
+A chat interface to ask immigration related questions to your OISS that runs on chatgpt
 
 # Table Of Contents
 -  [Paper Title](#paper-title)
