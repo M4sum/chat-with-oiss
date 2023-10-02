@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup as Soup
+from cachetools import TTLCache
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
@@ -7,6 +8,11 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pdb
 import requests
+from requests import Session
+from urllib.parse import urljoin, urlparse
+
+session = Session()
+cache = TTLCache(maxsize=1000, ttl=3600)
 
 def get_text_chunks(text):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -17,31 +23,47 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-def fetch_text_from_url(url):
-    response = requests.get(url)
+def get_documents(url):
+    visited_urls = set()
+    documents = []
 
-    soup = Soup(response.text, 'html.parser')
+    session = requests.Session()
 
-    content_divs = soup.find_all('div', class_='content')
+    def extract_content(soup):
+        content_div = soup.find('div', {'class': 'content'})
+        if content_div:
+            documents.append(content_div.text.strip())
 
-    def remove_text_by_id(tag, target_id):
-        target_tag = tag.find(id=target_id)
-        if target_tag:
-            target_tag.clear()
+    def extract_links(soup, base_url):
+        # pdb.set_trace()
+        # print(visited_urls, len(documents))
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            if not href.startswith(('http', 'mailto', '#', 'index.html')):
+                url = urljoin(base_url, href)
+                if url not in visited_urls:
+                    visited_urls.add(url)
+                    process_url(url)
+
+    def process_url(url):
+        try:
+            response = session.get(url)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                # pdb.set_trace()
+                extract_content(soup)
+                extract_links(soup, url)
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred while processing URL: {url}")
+            print(e)
+    process_url(url)
+    text = "\n\n".join(documents)
+    return text
 
 
-    for div in content_divs:
-        remove_text_by_id(div, "breadcrumbs")
-
-    extracted_content = []
-    for div in content_divs:
-        # content_text = div.get_text(strip=True)
-        # tags_to_extract = [tag for tag in div.find_all(True)]
-        
-        # extracted_content.append('\n'.join(tag.get_text() for tag in tags_to_extract))
-        extracted_content.append(div.get_text(strip=True))
-        # print(extracted_content)
-    return extracted_content
+def url_exists(url):
+    response = requests.head(url)
+    return response.status_code == 200
 
 def get_vectorstore(text_chunks):
     embeddings = OpenAIEmbeddings()

@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
-
 import pdb
 import streamlit as st
-from utils.utils import fetch_text_from_url, get_text_chunks, get_vectorstore, get_conversation_chain
+from utils.utils import get_documents, get_text_chunks, get_vectorstore, get_conversation_chain
 from utils.htmlTemplates import css, bot_template, user_template
 
 def handle_userinput(user_question):
@@ -39,8 +38,9 @@ def main():
             "Give me the URL of your university's OISS website")
         if st.button("Process"):
             with st.spinner("Processing"):
-                raw_text = fetch_text_from_url(url)
-                text_chunks = get_text_chunks(raw_text[0])
+                raw_text = get_documents(url)
+                pdb.set_trace()
+                text_chunks = get_text_chunks(raw_text)
                 vectorstore = get_vectorstore(text_chunks)
                 st.session_state.conversation = get_conversation_chain(vectorstore)
 
