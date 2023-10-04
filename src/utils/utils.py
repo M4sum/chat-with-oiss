@@ -49,7 +49,7 @@ def get_documents(url):
         try:
             response = session.get(url)
             if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
+                soup = Soup(response.content, 'html.parser')
                 # pdb.set_trace()
                 extract_content(soup)
                 extract_links(soup, url)
