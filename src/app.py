@@ -3,6 +3,9 @@ import pdb
 import streamlit as st
 from utils.utils import get_documents, get_text_chunks, get_vectorstore, get_conversation_chain
 from utils.htmlTemplates import css, bot_template, user_template
+from streamlit import config
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 
 def handle_userinput(user_question):
     response = st.session_state.conversation({'question': user_question})
@@ -20,6 +23,10 @@ def main():
     load_dotenv()
     st.set_page_config(page_title="Chat with your OISS website",
                        page_icon=":scales:")
+    
+    if config.get_option("server.use_x_forwarded_for"):
+        app = ProxyFix(app, x_proto=1, x_host=1)
+
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
