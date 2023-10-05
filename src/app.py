@@ -46,7 +46,6 @@ def main():
         if st.button("Process"):
             with st.spinner("Processing"):
                 raw_text = get_documents(url)
-                pdb.set_trace()
                 text_chunks = get_text_chunks(raw_text)
                 vectorstore = get_vectorstore(text_chunks)
                 st.session_state.conversation = get_conversation_chain(vectorstore)
