@@ -1,8 +1,19 @@
+---
+layout: post
+title: "OISS Chatbot"
+---
+
 # OISS Chatbot
 
 This is a chatbot that allows users to ask immigration questions to their school's OISS website. The chatbot uses natural language processing to understand user questions and provide relevant answers.
 
-## Installation
+## Table of contents
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+
+## [Installation](#installation)
 
 To install the dependencies for this app, you can create and activate a virtual environment using Conda and then run the following command:
 
@@ -32,7 +43,7 @@ Here are the steps to create and activate a virtual environment using Conda:
    pip install -r requirements.txt
    ```
 
-## Usage
+## [Usage](#usage)
 
 To run the app, use the following commands:
 
@@ -48,7 +59,7 @@ python -m streamlit run app.py
 
 This will start the app and open it in a web browser. You can then ask immigration questions to your school's OISS website and receive answers from the chatbot.
 
-## Configuration
+## [Configuration](#configuration)
 
 To configure the app, you can create a `.env` file in the root directory of the app and set the following environment variables:
 
@@ -57,10 +68,10 @@ To configure the app, you can create a `.env` file in the root directory of the 
 
 You can also customize the HTML templates for the chatbot by editing the files in the `utils/htmlTemplates` directory.
 
-## Contributing
+## [Contributing](#contributing)
 
 If you want to contribute to this project, you can fork the repository and submit a pull request with your changes. Please make sure to follow the coding style and conventions used in the existing code.
 
-## License
+## [License](#license)
 
 This project is licensed under the GNU AGPLv3 License. See the `LICENSE` file for more information.
