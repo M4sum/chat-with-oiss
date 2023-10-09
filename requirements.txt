@@ -3,7 +3,6 @@ langchain[llms]
 tiktoken
 cachetools
 beautifulsoup4
-faiss-cpu
 python-dotenv>=0.5.1
-qdrant_client
+qdrant-client
 # external requirements
