@@ -3,10 +3,14 @@ from cachetools import TTLCache
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from langchain.vectorstores import FAISS
+from langchain.vectorstores import Qdrant
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import os
 import pdb
+import qdrant_client
+from qdrant_client import QdrantClient
+from qdrant_client.http import models
 import requests
 from requests import Session
 from urllib.parse import urljoin, urlparse
@@ -26,7 +30,6 @@ def get_text_chunks(text):
 def get_documents(url):
     visited_urls = set()
     documents = []
-
     session = requests.Session()
 
     def extract_content(soup):
@@ -35,7 +38,6 @@ def get_documents(url):
             documents.append(content_div.text.strip())
 
     def extract_links(soup, base_url):
-        # pdb.set_trace()
         # print(visited_urls, len(documents))
         for link in soup.find_all('a', href=True):
             href = link['href']
@@ -50,7 +52,6 @@ def get_documents(url):
             response = session.get(url)
             if response.status_code == 200:
                 soup = Soup(response.content, 'html.parser')
-                # pdb.set_trace()
                 extract_content(soup)
                 extract_links(soup, url)
         except requests.exceptions.RequestException as e:
@@ -83,3 +84,31 @@ def get_conversation_chain(vectorstore):
         memory=memory
     )
     return conversation_chain
+
+def create_qdrant_collection(client, collection_name):
+    embeddings = OpenAIEmbeddings()
+
+    client.recreate_collection(
+    collection_name=collection_name,
+    vectors_config=models.VectorParams(
+        size=1536, 
+        distance=models.Distance.COSINE),
+)
+    vector_store = Qdrant(
+    client=client, collection_name=collection_name, 
+    embeddings=embeddings,
+)
+    return vector_store
+
+def get_qdrant_vectorstore(client, collection_name):
+    embeddings = OpenAIEmbeddings()
+    vector_store = Qdrant(
+    client=client, collection_name=collection_name, 
+    embeddings=embeddings,
+)
+    return vector_store
+
+def get_qdrant_collections(client):
+    collections = client.get_collections()
+    collection_names = [c.name for c in collections.collections]
+    return collection_names
