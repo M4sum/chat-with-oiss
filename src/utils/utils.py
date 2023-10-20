@@ -3,6 +3,13 @@ from cachetools import TTLCache
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from langchain.prompts import MessagesPlaceholder, PromptTemplate
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    AIMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
 from langchain.vectorstores import Qdrant
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -17,6 +24,47 @@ from urllib.parse import urljoin, urlparse
 
 session = Session()
 cache = TTLCache(maxsize=1000, ttl=3600)
+template = """You are an expert chatbot, tasked with answering any 
+immigration question from the Northwestern OISS Wbesite.
+
+Generate a comprehensive and informative answer of 100 words or less for the given question 
+based solely on the provided search results (URL and content). You must only use information 
+from the provided search results. Use an unbiased and journalistic tone. Combine search results
+together into a coherent answer. Do not repeat text.
+
+You should use bullet points in your answer for readability. You should highlight the passage you
+fetched yor answer from with this notation: $relevant passage$.
+
+If there is nothing in the context relevant to the question at hand, just say "Hmm.. I don't know" 
+Don't try to make up an answer.
+"""
+
+prompt=PromptTemplate.from_template(
+    template=template
+)
+
+# prompt = ChatPromptTemplate(
+#     messages=[
+#         SystemMessagePromptTemplate.from_template(
+#             """You are an expert programmer and problem-solver, tasked with answering any 
+#             immigration question from the Northwestern OISS Wbesite.
+
+#             Generate a comprehensive and informative answer of 100 words or less for the given question 
+#             based solely on the provided search results (URL and content). You must only use information 
+#             from the provided search results. Use an unbiased and journalistic tone. Combine search results
+#             together into a coherent answer. Do not repeat text.
+
+#             You should use bullet points in your answer for readability. You should highlight the passage you
+#             fetched yor answer from with this notation: $relevant passage$.
+
+#             If there is nothing in the context relevant to the question at hand, just say "Hmm, I'm not sure." 
+#             Don't try to make up an answer."""
+#         ),
+#         # The `variable_name` here is what must align with memory
+#         MessagesPlaceholder(variable_name="chat_history"),
+#         HumanMessagePromptTemplate.from_template("{question}")
+#     ]
+# )
 
 def get_text_chunks(text):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -72,17 +120,23 @@ def get_vectorstore(text_chunks):
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
-def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI()
+def get_conversation_chain(vectorstore, msgs=None):
+    
     # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
 
     memory = ConversationBufferMemory(
-        memory_key='chat_history', return_messages=True)
+        memory_key='chat_history', chat_memory=msgs, return_messages=True)
+    llm = ChatOpenAI(
+        model_name="gpt-3.5-turbo", temperature=0, streaming=True
+    )
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=vectorstore.as_retriever(),
-        memory=memory
+        # condense_question_prompt=prompt,
+        memory=memory,
+        # return_source_documents=True
     )
+    # pdb.set_trace()
     return conversation_chain
 
 def create_qdrant_collection(client, collection_name):

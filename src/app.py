@@ -6,22 +6,42 @@ import streamlit as st
 from utils.utils import *
 from utils.htmlTemplates import css, bot_template, user_template
 from streamlit import config
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
+from langchain.schema import ChatMessage
 
+class StreamHandler(BaseCallbackHandler):
+    def __init__(self, container: st.delta_generator.DeltaGenerator, initial_text: str = ""):
+        self.container = container
+        self.text = initial_text
+        self.run_id_ignore_token = None
 
-def handle_userinput(user_question):
-    try:
-        response = st.session_state.conversation({'question': user_question})
-        st.session_state.chat_history = response['chat_history']
-    except TypeError as e:
-        st.warning("Please enter a valid URL in the sidebar to get started.")
-        return
-    for i, message in enumerate(reversed(st.session_state.chat_history)):
-        if i % 2 == 0:
-            st.write(user_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
-        else:
-            st.write(bot_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
+    def on_llm_start(self, serialized: dict, prompts: list, **kwargs):
+        # Workaround to prevent showing the rephrased question as output
+        if prompts[0].startswith("Human"):
+            self.run_id_ignore_token = kwargs.get("run_id")
+
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        if self.run_id_ignore_token == kwargs.get("run_id", False):
+            return
+        self.text += token
+        self.container.markdown(self.text)
+
+class PrintRetrievalHandler(BaseCallbackHandler):
+    def __init__(self, container):
+        self.status = container.status("**Context Retrieval**")
+
+    def on_retriever_start(self, serialized: dict, query: str, **kwargs):
+        self.status.write(f"**Question:** {query}")
+        self.status.update(label=f"**Context Retrieval:** {query}")
+
+    def on_retriever_end(self, documents, **kwargs):
+        # pdb.set_trace()
+        for idx, doc in enumerate(documents):
+            # source = os.path.basename(doc.metadata["source"])
+            # self.status.write(f"**Document {idx} from {source}**")
+            self.status.markdown(doc.page_content)
+        self.status.update(state="complete")
 
 def main():
     load_dotenv()
@@ -33,51 +53,47 @@ def main():
         )
     st.write(css, unsafe_allow_html=True)
 
-    # with st.container():
-    #     st.write("This website only works for Northwestern University's OISS website currently. \
-    #          We are working on adding more universities")
-
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = None
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = None
-
-    st.header("Chat with your OISS website :robot_face:")
-    
-    user_question = st.text_input("Ask any immigration question to your school's OISS website:")
-    if user_question:
-        handle_userinput(user_question)
-
     with st.sidebar:
         # Get all collections
-        st.subheader("Universities supported")
+        st.subheader("Only supports Northwestern University currently")
         collection_names = get_qdrant_collections(client)
 
         # Select a collection
         selected_collection = st.selectbox("Select a University", collection_names, index=None)
 
-        # # Create a new collection if selected option is "Create new collection"
-        # if selected_collection == "Create new collection":
-        #     new_collection_name = st.text_input("Enter a University name")
-        #     url = st.text_input("Enter the URL of the University's OISS website")
-        #     if st.button("Create"):
-        #         if new_collection_name and url:
-        #             with st.spinner("Processing"):
-        #                 create_qdrant_collection(client, new_collection_name)
-        #                 raw_text = get_documents(url)
-        #                 text_chunks = get_text_chunks(raw_text)
-        #                 vectorstore = get_qdrant_vectorstore(client, new_collection_name)
-        #                 vectorstore.add_texts(text_chunks)
-        #                 st.session_state.conversation = get_conversation_chain(vectorstore)
-        #                 st.success(f"Collection {new_collection_name} created successfully")
-        #         else:
-        #             st.warning("Please enter a University name and OISS website url")
-        # else:
         if selected_collection:
             vectorstore = get_qdrant_vectorstore(client, selected_collection)
-            st.session_state.conversation = get_conversation_chain(vectorstore)
             st.success(f"Start chatting!")
+        else:
+            st.info("Please select a university name to contniue.")
+            st.stop()
 
+    msgs = StreamlitChatMessageHistory()
+
+    qa_chain = get_conversation_chain(vectorstore, msgs)
+
+    greet_message = "Hello, I am an AI Assistant tasked with answering your immigration related queries, from the Northwestern website. \
+        I can help you with 3 kinds of tasks.\n \
+            1. Help with you case\n \
+                2. Find a topic from OISS website\n \
+                    3. Ask a general query\n \
+                        Which of this would you require help with today?"
+    
+    if len(msgs.messages) == 0 or st.sidebar.button("Clear message history"):
+        msgs.clear()
+        msgs.add_ai_message(greet_message)
+
+    avatars = {"human": "user", "ai": "assistant"}
+    for msg in msgs.messages:
+        st.chat_message(avatars[msg.type]).write(msg.content)
+
+    if user_query := st.chat_input(placeholder="Ask me anything!"):
+        st.chat_message("user").write(user_query)
+
+        with st.chat_message("assistant"):
+            retrieval_handler = PrintRetrievalHandler(st.container())
+            stream_handler = StreamHandler(st.empty())
+            response = qa_chain.run(user_query, callbacks=[retrieval_handler, stream_handler])
 
 if __name__ == '__main__':
     main()
