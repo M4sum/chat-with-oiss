@@ -1,8 +1,3 @@
----
-layout: post
-title: "OISS Chatbot"
----
-
 # OISS Chatbot
 
 This is a chatbot that allows users to ask immigration questions to their school's OISS website. The chatbot uses natural language processing to understand user questions and provide relevant answers. You can check it out here [OISS Chatbot](https://chat-with-oiss.streamlit.app/)
