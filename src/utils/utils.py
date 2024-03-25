@@ -20,6 +20,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 import requests
 from requests import Session
+import streamlit as st
 from urllib.parse import urljoin, urlparse
 
 session = Session()
@@ -163,6 +164,12 @@ def get_qdrant_vectorstore(client, collection_name):
     return vector_store
 
 def get_qdrant_collections(client):
-    collections = client.get_collections()
-    collection_names = [c.name for c in collections.collections]
+    collection_names = []
+    try:
+        collections = client.get_collections()
+        collection_names = [c.name for c in collections.collections]
+    except Exception as e:
+        print(f"Error--------------------\n\n{e}\n\n\n")
+        st.error("Uh-oh! the Qdrant cluster is inactive. Free qdrant clusters become inactive after few days of inactivity.\
+                 Please contact me through my email or Linkedin and I'll try to get it up and running as soon as I can. Thank you and apologies for the inconvenience :)")
     return collection_names
