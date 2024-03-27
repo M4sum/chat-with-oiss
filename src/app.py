@@ -7,7 +7,7 @@ from utils.utils import *
 from utils.htmlTemplates import css, bot_template, user_template
 from streamlit import config
 from langchain.callbacks.base import BaseCallbackHandler
-from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain.schema import ChatMessage
 
 class StreamHandler(BaseCallbackHandler):

@@ -10,8 +10,8 @@ from langchain.prompts.chat import (
     AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain.vectorstores import Qdrant
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Qdrant
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
 import pdb
