@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup as Soup
 from cachetools import TTLCache
-from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import MessagesPlaceholder, PromptTemplate
@@ -10,6 +9,7 @@ from langchain.prompts.chat import (
     AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from langchain_anthropic import ChatAnthropic
 from langchain.vectorstores import Qdrant
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -127,9 +127,11 @@ def get_conversation_chain(vectorstore, msgs=None):
 
     memory = ConversationBufferMemory(
         memory_key='chat_history', chat_memory=msgs, return_messages=True)
-    llm = ChatOpenAI(
-        model_name="gpt-3.5-turbo", temperature=0, streaming=True
-    )
+    llm = ChatAnthropic(temperature=0, \
+                        model_name="claude-3-haiku-20240307")
+
+
+
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=vectorstore.as_retriever(),

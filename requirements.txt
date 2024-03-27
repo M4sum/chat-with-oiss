@@ -1,5 +1,6 @@
 # local package
 langchain[llms]
+langchain_anthropic
 tiktoken
 cachetools
 beautifulsoup4
