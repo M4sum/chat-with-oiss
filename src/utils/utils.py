@@ -1,6 +1,6 @@
-from bs4 import BeautifulSoup as Soup
 from cachetools import TTLCache
-from langchain.chat_models import ChatOpenAI
+from cryptography.fernet import Fernet
+from langchain_community.chat_models import ChatOpenAI, ChatCohere
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import MessagesPlaceholder, PromptTemplate
@@ -10,18 +10,13 @@ from langchain.prompts.chat import (
     AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain_community.vectorstores import Qdrant
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+from langchain_core.runnables import RunnableLambda
 import os
 import pdb
 import qdrant_client
-from qdrant_client import QdrantClient
-from qdrant_client.http import models
-import requests
 from requests import Session
 import streamlit as st
-from urllib.parse import urljoin, urlparse
 
 session = Session()
 cache = TTLCache(maxsize=1000, ttl=3600)
@@ -39,6 +34,35 @@ fetched yor answer from with this notation: $relevant passage$.
 If there is nothing in the context relevant to the question at hand, just say "Hmm.. I don't know" 
 Don't try to make up an answer.
 """
+
+
+chat_models = [
+    {
+        "name": "GPT-3.5",
+        "provider": "OpenAI",
+        "api_key_link": "https://beta.openai.com/signup/",
+        "free_trial": True,
+    },
+    {
+        "name": "Claude",
+        "provider": "Anthropic",
+        "api_key_link": "https://www.anthropic.com/pricing",
+        "free_trial": False,
+    },
+    {
+        "name": "Gemini",
+        "provider": "Google",
+        "api_key_link": "https://developers.generativeai.google/setup",
+        "free_trial": True
+    },
+    {
+        "name": "Command-R",
+        "provider": "Cohere AI",
+        "api_key_link": "https://dashboard.cohere.ai/signup",
+        "free_trial": True,
+    },
+    # Add more chat models as needed
+]
 
 prompt=PromptTemplate.from_template(
     template=template
@@ -67,71 +91,25 @@ prompt=PromptTemplate.from_template(
 #     ]
 # )
 
-def get_text_chunks(text):
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100,
-        length_function=len
-    )
-    chunks = text_splitter.split_text(text)
-    return chunks
-
-def get_documents(url):
-    visited_urls = set()
-    documents = []
-    session = requests.Session()
-
-    def extract_content(soup):
-        content_div = soup.find('div', {'class': 'content'})
-        if content_div:
-            documents.append(content_div.text.strip())
-
-    def extract_links(soup, base_url):
-        # print(visited_urls, len(documents))
-        for link in soup.find_all('a', href=True):
-            href = link['href']
-            if not href.startswith(('http', 'mailto', '#', 'index.html')):
-                url = urljoin(base_url, href)
-                if url not in visited_urls:
-                    visited_urls.add(url)
-                    process_url(url)
-
-    def process_url(url):
-        try:
-            response = session.get(url)
-            if response.status_code == 200:
-                soup = Soup(response.content, 'html.parser')
-                extract_content(soup)
-                extract_links(soup, url)
-        except requests.exceptions.RequestException as e:
-            print(f"An error occurred while processing URL: {url}")
-            print(e)
-    process_url(url)
-    text = "\n\n".join(documents)
-    return text
-
-
-def url_exists(url):
-    response = requests.head(url)
-    return response.status_code == 200
-
-def get_vectorstore(text_chunks):
-    embeddings = OpenAIEmbeddings()
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
-    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
-    return vectorstore
-
-def get_conversation_chain(vectorstore, msgs=None):
+def get_conversation_chain(vectorstore, selected_model, msgs=None):
     
     # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
-
     memory = ConversationBufferMemory(
         memory_key='chat_history', chat_memory=msgs, return_messages=True)
-    llm = ChatOpenAI(
-        model_name="gpt-3.5-turbo", temperature=0, streaming=True
-    )
+    
+    if selected_model == "GPT-3.5":
+        llm = ChatOpenAI(
+                model_name="gpt-3.5-turbo", temperature=0, streaming=True
+        ),
+    elif selected_model == "Command-R":
+        llm = ChatCohere(
+                model_name="command", temperature=0.75, streaming=True
+        ),
+    else:
+        st.error("model API not yet compatible")
+
     conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
+        llm=llm[0],
         retriever=vectorstore.as_retriever(),
         # condense_question_prompt=prompt,
         memory=memory,
@@ -140,36 +118,33 @@ def get_conversation_chain(vectorstore, msgs=None):
     # pdb.set_trace()
     return conversation_chain
 
-def create_qdrant_collection(client, collection_name):
-    embeddings = OpenAIEmbeddings()
+def get_vectorstore(text_chunks):
+    embeddings = FastEmbedEmbeddings()
+    
+    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    return vectorstore
 
-    client.recreate_collection(
-    collection_name=collection_name,
-    vectors_config=models.VectorParams(
-        size=1536, 
-        distance=models.Distance.COSINE),
-)
-    vector_store = Qdrant(
-    client=client, collection_name=collection_name, 
-    embeddings=embeddings,
-)
-    return vector_store
+# Function to encrypt the API key
+def encrypt_api_key(api_key, key):
+    cipher_suite = Fernet(key)
+    encrypted_key = cipher_suite.encrypt(api_key.encode())
+    return encrypted_key
 
-def get_qdrant_vectorstore(client, collection_name):
-    embeddings = OpenAIEmbeddings()
-    vector_store = Qdrant(
-    client=client, collection_name=collection_name, 
-    embeddings=embeddings,
-)
-    return vector_store
+# Function to decrypt the API key
+def decrypt_api_key(encrypted_key, key):
+    cipher_suite = Fernet(key)
+    decrypted_key = cipher_suite.decrypt(encrypted_key).decode()
+    return decrypted_key
 
-def get_qdrant_collections(client):
-    collection_names = []
-    try:
-        collections = client.get_collections()
-        collection_names = [c.name for c in collections.collections]
-    except Exception as e:
-        print(f"Error--------------------\n\n{e}\n\n\n")
-        st.error("Uh-oh! the Qdrant cluster is inactive. Free qdrant clusters become inactive after few days of inactivity.\
-                 Please contact me through my email or Linkedin and I'll try to get it up and running as soon as I can. Thank you and apologies for the inconvenience :)")
-    return collection_names
+# Function to store API key in session state
+def store_api_key_in_session(api_key, env_var_name, key):
+    os.environ[env_var_name] = decrypt_api_key(api_key, key)
+
+# Function to retrieve API key from session state
+def get_api_key_from_session(env_var_name, key):
+    encrypted_key = os.environ.get(env_var_name)
+    if encrypted_key:
+        return decrypt_api_key(encrypted_key, key)
+    else:
+        return None

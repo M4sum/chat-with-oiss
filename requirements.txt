@@ -1,9 +1,12 @@
 # local package
+cryptography
 langchain[llms]
 langchain_anthropic
+langchain-openai
 tiktoken
 cachetools
 beautifulsoup4
 python-dotenv>=0.5.1
 qdrant-client
+sentence-transformers
 # external requirements
