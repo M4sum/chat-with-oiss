@@ -1,5 +1,6 @@
 # local package
 cryptography
+fastembed
 langchain[llms]
 langchain_anthropic
 langchain-openai
