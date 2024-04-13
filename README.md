@@ -9,7 +9,7 @@ This chatbot allows users to ask immigration questions to their school's OISS we
 - [Contributing](#contributing)
 - [License](#license)
 - 
-## [Overview](#overview)
+## Overview
 
 ### Project Overview
 
