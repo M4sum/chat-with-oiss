@@ -39,7 +39,7 @@ The key components of this project are:
 
 You might find some unnecessary files in the codebase due to a fixed cookie-cutter template I use for machine-learning projects. Ignore those.
 
-## [Installation](#installation)
+## Installation
 
 To install the dependencies for this app, you can create and activate a virtual environment using Conda and then run the following command:
 
@@ -69,7 +69,7 @@ Here are the steps to create and activate a virtual environment using Conda:
    pip install -r requirements.txt
    ```
 
-## [Usage](#usage)
+## Usage
 
 To run the app, use the following commands:
 
@@ -85,7 +85,7 @@ python -m streamlit run app.py
 
 This will start the app and open it in a web browser. You can then ask immigration questions to your school's OISS website and receive answers from the chatbot.
 
-## [Configuration](#configuration)
+## Configuration
 
 To configure the app, you can create a `.env` file in the root directory of the app and set the following environment variables:
 
@@ -96,10 +96,10 @@ If you plan to develop this app, you should create embeddings for the data using
 
 You can also customize the chatbots' HTML templates by editing the files in the `utils/htmlTemplates` directory.
 
-## [Contributing](#contributing)
+## Contributing
 
 If you want to contribute to this project, you can fork the repository and submit a pull request with your changes. Please make sure to follow the coding style and conventions used in the existing code.
 
-## [License](#license)
+## License
 
 This project is licensed under the GNU AGPLv3 License. See the `LICENSE` file for more information.
