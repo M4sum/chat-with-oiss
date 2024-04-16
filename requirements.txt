@@ -4,6 +4,7 @@ fastembed
 langchain[llms]
 langchain_anthropic
 langchain-openai
+langchain-community
 tiktoken
 cachetools
 beautifulsoup4

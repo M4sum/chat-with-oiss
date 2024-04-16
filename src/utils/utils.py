@@ -10,7 +10,6 @@ from langchain.prompts.chat import (
     AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_core.runnables import RunnableLambda
 import os
 import pdb
@@ -118,8 +117,7 @@ def get_conversation_chain(vectorstore, selected_model, msgs=None):
     # pdb.set_trace()
     return conversation_chain
 
-def get_vectorstore(text_chunks):
-    embeddings = FastEmbedEmbeddings()
+def get_vectorstore(text_chunks, embeddings):
     
     # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)

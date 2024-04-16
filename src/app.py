@@ -9,8 +9,11 @@ from utils.utils import *
 from utils.htmlTemplates import css, bot_template, user_template
 from streamlit import config
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
 from langchain.schema import ChatMessage
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 
 chat_model_envvars = {
@@ -61,9 +64,9 @@ class PrintRetrievalHandler(BaseCallbackHandler):
         # pdb.set_trace()
         for idx, doc in enumerate(documents):
             # source = os.path.basename(doc.metadata["source"])
-            # self.status.write(f"**Document {idx} from {source}**")
+            self.status.write(f"**source excerpt** {doc.page_content}")
             self.status.markdown(doc.page_content)
-        self.status.update(state="complete")     
+        self.status.update(state="complete")
 
 def main():
     show_chat=False
@@ -79,9 +82,10 @@ def main():
         # Get all collections
         st.subheader("Only supports Northwestern University currently")
         collection_names = get_qdrant_collections(client)
-
+        embeddings = FastEmbedEmbeddings()
         # Select a collection
-        selected_collection = st.selectbox("Select a University", collection_names, index=None)
+        # st.write(collection_names)
+        selected_collection = st.selectbox("Select a University", [collection_name for collection_name in collection_names if collection_name == "Northwestern University"], index=None)
         selected_model = st.selectbox("Choose a chat model:", [model["name"] for model in chat_models], index=None)            
 
         if not (selected_collection and selected_model):
@@ -94,7 +98,7 @@ def main():
                              autocomplete="current-password", \
                                 placeholder=api_key_placeholder,
                             )
-            vectorstore = get_qdrant_vectorstore(client, selected_collection)
+            vectorstore = get_qdrant_vectorstore(client, embeddings, selected_collection)
             if user_api_key:
                 api_key = encrypt_api_key(user_api_key, key)
                 # st.write(api_key)

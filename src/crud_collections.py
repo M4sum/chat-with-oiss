@@ -1,10 +1,9 @@
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.vectorstores import Qdrant
 from qdrant_client.http import models
 import streamlit as st
 
-def create_qdrant_collection(client, collection_name, embedding_dim, new_collection_name="", mode="recreate"):
-    embeddings = FastEmbedEmbeddings()
+def create_qdrant_collection(client, collection_name, embeddings, embedding_dim, new_collection_name="", mode="recreate"):
+    embeddings = embeddings
 
     if mode == "recreate":
         client.recreate_collection(
@@ -40,8 +39,8 @@ def get_qdrant_collections(client):
                  Please contact me through my email or Linkedin and I'll try to get it up and running as soon as I can. Thank you and apologies for the inconvenience :)")
     return collection_names
 
-def get_qdrant_vectorstore(client, collection_name):
-    embeddings = FastEmbedEmbeddings()
+def get_qdrant_vectorstore(client, embeddings, collection_name):
+    embeddings = embeddings
     vector_store = Qdrant(
     client=client, collection_name=collection_name, 
     embeddings=embeddings,
